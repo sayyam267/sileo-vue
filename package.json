@@ -1,0 +1,57 @@
+{
+	"name": "sileo-vue",
+	"version": "0.1.5",
+	"description": "An opinionated, physics based toast notification library for Vue.",
+	"license": "MIT",
+	"homepage": "https://github.com/sayyam267/sileo-vue",
+	"bugs": {
+		"url": "https://github.com/sayyam267/sileo-vue/issues"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/sayyam267/sileo-vue.git"
+	},
+	"keywords": [
+		"vue",
+		"vue3",
+		"toast",
+		"notification",
+		"toast-notification",
+		"ui"
+	],
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.mjs",
+			"require": "./dist/index.js",
+			"default": "./dist/index.js"
+		},
+		"./styles.css": "./dist/styles.css"
+	},
+	"main": "./dist/index.js",
+	"module": "./dist/index.mjs",
+	"types": "./dist/index.d.ts",
+	"sideEffects": [
+		"*.css",
+		"dist/styles.css"
+	],
+	"files": [
+		"dist"
+	],
+	"publishConfig": {
+		"access": "public"
+	},
+	"scripts": {
+		"build": "rm -rf dist && bunchee && cp src/styles.css dist/styles.css",
+		"dev": "bunchee --watch"
+	},
+	"peerDependencies": {
+		"vue": "^3.5.13"
+	},
+	"devDependencies": {
+		"bunchee": "^6.9.4"
+	},
+	"dependencies": {
+		"motion": "^12.34.0"
+	}
+}

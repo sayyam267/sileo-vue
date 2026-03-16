@@ -1,9 +1,9 @@
 {
-	"name": "sileo-vue",
+	"name": "sileo-vue3",
 	"version": "0.1.5",
 	"description": "An opinionated, physics based toast notification library for Vue.",
 	"license": "MIT",
-	"homepage": "https://github.com/sayyam267/sileo-vue",
+	"homepage": "https://sayyam267.github.io/sileo-vue/",
 	"bugs": {
 		"url": "https://github.com/sayyam267/sileo-vue/issues"
 	},
@@ -43,15 +43,20 @@
 	},
 	"scripts": {
 		"build": "rm -rf dist && bunchee && cp src/styles.css dist/styles.css",
-		"dev": "bunchee --watch"
+		"dev": "bunchee --watch",
+		"site:dev": "vite --config site/vite.config.ts",
+		"site:build": "vite build --config site/vite.config.ts"
 	},
 	"peerDependencies": {
 		"vue": "^3.5.13"
 	},
 	"devDependencies": {
+		"@tailwindcss/vite": "^4.1.12",
+		"@vitejs/plugin-vue": "^5.2.4",
 		"bunchee": "^6.9.4"
 	},
 	"dependencies": {
-		"motion": "^12.34.0"
+		"motion": "^12.34.0",
+		"vue": "^3.5.30"
 	}
 }

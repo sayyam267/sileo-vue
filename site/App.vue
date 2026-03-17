@@ -1,256 +1,295 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
-import { sileo, Toaster, type SileoPosition } from "sileo-vue3";
+import { animate, stagger } from "motion";
+import { computed, h, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { sileo, Toaster, type SileoPosition } from "../src";
+import { SILEO_POSITIONS } from "../src/types";
 
-const positions: SileoPosition[] = [
-	"top-left",
-	"top-center",
-	"top-right",
-	"bottom-left",
-	"bottom-center",
-	"bottom-right",
+type ThemeMode = "light" | "dark";
+type ToastVariant = "success" | "error" | "warning" | "info" | "promise";
+
+const navLinks = [
+	{ label: "GitHub", href: "https://github.com/sayyam267/sileo-vue" },
+	{ label: "Docs", href: "https://github.com/sayyam267/sileo-vue#readme" },
+	{ label: "Playground", href: "#playground" },
 ];
 
-const activePosition = ref<SileoPosition>("top-right");
-const installCommand = "npm i sileo-vue3";
+const typeOptions: Array<{ label: string; value: ToastVariant }> = [
+	{ label: "Success", value: "success" },
+	{ label: "Error", value: "error" },
+	{ label: "Warning", value: "warning" },
+	{ label: "Info", value: "info" },
+	{ label: "Promise", value: "promise" },
+];
 
-const demoCards = computed(() => [
-	{
-		id: "success",
-		title: "Success",
-		description: "Show a polished success state with an action chip.",
-		action: () =>
-			sileo.success({
-				title: "Saved",
-				position: activePosition.value,
-				description: "Your design system token update was saved cleanly.",
-				button: {
-					title: "View",
-					onClick: () =>
-						sileo.info({
-							title: "Details",
-							position: activePosition.value,
-							description: "The success toast can trigger another toast action.",
-						}),
-				},
+const installCommand = "npm install sileo-vue3";
+const position = ref<SileoPosition>("top-right");
+const theme = ref<ThemeMode>("light");
+
+const typeMeta: Record<
+	ToastVariant,
+	{ title: string; message: string; icon: string }
+> = {
+	success: {
+		title: "Changes saved",
+		message: "Your latest changes were saved successfully.",
+		icon: "check",
+	},
+	error: {
+		title: "Publish failed",
+		message: "The release could not be published. Check your token and retry.",
+		icon: "error",
+	},
+	warning: {
+		title: "Review recommended",
+		message: "A few edits still need review before this branch is ready.",
+		icon: "warning",
+	},
+	info: {
+		title: "Heads up",
+		message: "You can preview position, timing, and style directly from this page.",
+		icon: "info",
+	},
+	promise: {
+		title: "Building release",
+		message: "Track loading, success, and error states with one call.",
+		icon: "promise",
+	},
+};
+
+const positionButtons = computed(() =>
+	SILEO_POSITIONS.map((value) => ({
+		value,
+		label: value.replace("-", " "),
+	})),
+);
+const setupSnippet = computed(
+	() => `import { Toaster, sileo } from "sileo-vue3"
+import "sileo-vue3/styles.css"
+
+<Toaster position="${position.value}" theme="${theme.value}" />`,
+);
+
+function iconNode(name: string) {
+	const common = {
+		viewBox: "0 0 24 24",
+		fill: "none",
+		stroke: "currentColor",
+		"stroke-width": "1.9",
+		"stroke-linecap": "round",
+		"stroke-linejoin": "round",
+		"aria-hidden": "true",
+	};
+
+	const paths: Record<string, unknown[]> = {
+		check: [h("path", { d: "M5 12.5l4.2 4.2L19 7.5" })],
+		error: [
+			h("circle", { cx: "12", cy: "12", r: "9" }),
+			h("path", { d: "M9 9l6 6" }),
+			h("path", { d: "M15 9l-6 6" }),
+		],
+		warning: [
+			h("path", { d: "M12 4l8 15H4L12 4z" }),
+			h("path", { d: "M12 9v4.5" }),
+			h("path", { d: "M12 17h.01" }),
+		],
+		info: [
+			h("circle", { cx: "12", cy: "12", r: "9" }),
+			h("path", { d: "M12 10.5V16" }),
+			h("path", { d: "M12 8h.01" }),
+		],
+		promise: [
+			h("path", { d: "M12 3v4" }),
+			h("path", { d: "M12 17v4" }),
+			h("path", { d: "M3 12h4" }),
+			h("path", { d: "M17 12h4" }),
+			h("circle", { cx: "12", cy: "12", r: "4" }),
+		],
+		copy: [
+			h("rect", { x: "9", y: "9", width: "10", height: "10", rx: "2" }),
+			h("path", { d: "M7 15H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v1" }),
+		],
+		moon: [
+			h("path", {
+				d: "M18 14.5A6.5 6.5 0 0 1 9.5 6a7.5 7.5 0 1 0 8.5 8.5z",
 			}),
-	},
-	{
-		id: "error",
-		title: "Error",
-		description: "Surface a failing request or blocked workflow instantly.",
-		action: () =>
-			sileo.error({
-				title: "Publish failed",
-				position: activePosition.value,
-				description: "The registry rejected this release because the token expired.",
-			}),
-	},
-	{
-		id: "warning",
-		title: "Warning",
-		description: "Use autopilot timing to preview expansion and collapse.",
-		action: () =>
-			sileo.warning({
-				title: "Unsaved changes",
-				position: activePosition.value,
-				description: "Your current draft still has local edits pending review.",
-				autopilot: { expand: 250, collapse: 3200 },
-			}),
-	},
-	{
-		id: "action",
-		title: "Action",
-		description: "Drive the next step directly from the notification.",
-		action: () =>
-			sileo.action({
-				title: "Ready for review",
-				position: activePosition.value,
-				description: "The branch passed checks and can be opened for review.",
-				button: {
-					title: "Clear all",
-					onClick: () => sileo.clear(),
-				},
-			}),
-	},
-	{
-		id: "promise",
-		title: "Promise",
-		description: "Track async work from loading into success or failure.",
-		action: () =>
-			sileo.promise(
-				new Promise<{ id: string }>((resolve) =>
-					window.setTimeout(() => resolve({ id: "artifact_204" }), 1800),
-				),
-				{
-					position: activePosition.value,
-					loading: {
-						title: "Building",
-						description: "Bundling the package and generating declarations.",
-					},
-					success: (data) => ({
-						title: "Build complete",
-						description: `Release candidate ${data.id} is ready to publish.`,
-					}),
-					error: () => ({
-						title: "Build failed",
-						description: "The build pipeline exited before artifacts were uploaded.",
-					}),
-				},
-			),
-	},
-]);
+		],
+		sun: [
+			h("circle", { cx: "12", cy: "12", r: "4" }),
+			h("path", { d: "M12 2.5v2.2" }),
+			h("path", { d: "M12 19.3v2.2" }),
+			h("path", { d: "M4.9 4.9l1.6 1.6" }),
+			h("path", { d: "M17.5 17.5l1.6 1.6" }),
+			h("path", { d: "M2.5 12h2.2" }),
+			h("path", { d: "M19.3 12h2.2" }),
+			h("path", { d: "M4.9 19.1l1.6-1.6" }),
+			h("path", { d: "M17.5 6.5l1.6-1.6" }),
+		],
+	};
+
+	return h("svg", common, paths[name] ?? []);
+}
+
+function syncTheme(mode: ThemeMode) {
+	theme.value = mode;
+	document.documentElement.dataset.theme = mode;
+	localStorage.setItem("sileo-vue-site-theme", mode);
+}
+
+function toggleTheme() {
+	syncTheme(theme.value === "light" ? "dark" : "light");
+}
 
 async function copyInstall() {
 	await navigator.clipboard.writeText(installCommand);
 	sileo.success({
-		title: "Copied",
-		position: activePosition.value,
-		description: "Install command copied to your clipboard.",
+		title: "Install command copied",
+		description: "Paste it into your Vue app and start using sileo-vue3.",
+		position: position.value,
+		duration: 2800,
 	});
 }
 
-function previewPosition(position: SileoPosition) {
-	activePosition.value = position;
-	sileo.info({
-		title: "Position updated",
-		position,
-		description: `New toasts will now appear at ${position}.`,
+function triggerToast(type: ToastVariant) {
+	if (type === "promise") {
+		void sileo.promise(
+			new Promise<{ id: string }>((resolve) =>
+				window.setTimeout(() => resolve({ id: "v3-release" }), 1400),
+			),
+			{
+				position: position.value,
+				loading: {
+					title: typeMeta.promise.title,
+					description: "Bundling assets and generating types.",
+				},
+				success: (data) => ({
+					title: "Build complete",
+					description: `${data.id} is ready to publish.`,
+				}),
+				error: () => ({
+					title: "Build failed",
+					description: "The pipeline stopped before the artifacts were uploaded.",
+				}),
+			},
+		);
+		return;
+	}
+
+	sileo[type]({
+		title: typeMeta[type].title,
+		description: typeMeta[type].message,
+		position: position.value,
+		duration: 3200,
 	});
 }
+
+watch(theme, (mode) => {
+	document.documentElement.dataset.theme = mode;
+});
+
+onMounted(() => {
+	const stored = localStorage.getItem("sileo-vue-site-theme");
+	if (stored === "light" || stored === "dark") {
+		syncTheme(stored);
+	} else {
+		syncTheme(window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+	}
+
+	animate(
+		"[data-hero]",
+		{ opacity: [0, 1], transform: ["translateY(18px)", "translateY(0px)"] },
+		{ duration: 0.55, delay: stagger(0.06), easing: [0.22, 1, 0.36, 1] },
+	);
+});
+
+onBeforeUnmount(() => {
+	document.documentElement.removeAttribute("data-theme");
+});
 </script>
 
 <template>
-	<div class="min-h-screen bg-transparent text-white">
-		<Toaster :position="activePosition" theme="dark" />
+	<div class="site-shell">
+		<Toaster :position="position" :theme="theme" />
 
-		<div class="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-5 pb-10 pt-6 sm:px-8">
-			<header class="mb-10 flex flex-col gap-6 rounded-[2rem] border border-white/10 bg-white/5 p-6 shadow-[0_20px_80px_rgba(0,0,0,0.35)] backdrop-blur-xl sm:p-8">
-				<div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-					<div class="max-w-3xl">
-						<p class="mb-3 text-xs font-semibold uppercase tracking-[0.28em] text-cyan-300/80">
-							Vue toast playground
-						</p>
-						<h1 class="text-4xl font-semibold tracking-tight text-white sm:text-6xl">
-							Test every Sileo Vue state in one page.
-						</h1>
-						<p class="mt-4 max-w-2xl text-base leading-7 text-white/70 sm:text-lg">
-							A GitHub Pages-ready playground for
-							<span class="font-semibold text-white">sileo-vue3</span>
-							with quick position switching, async demos, and install-ready snippets.
-						</p>
-					</div>
+		<header class="site-header">
+			<a class="brand" href="#">
+				<span class="brand-dot"></span>
+				<span>sileo-vue</span>
+			</a>
 
-					<div class="rounded-3xl border border-cyan-400/20 bg-cyan-400/10 px-5 py-4 text-sm text-cyan-50">
-						<div class="text-white/60">Current position</div>
-						<div class="mt-1 text-xl font-semibold">{{ activePosition }}</div>
-					</div>
-				</div>
+			<nav class="nav-links" aria-label="Primary">
+				<a v-for="link in navLinks" :key="link.label" :href="link.href" :target="link.href.startsWith('http') ? '_blank' : undefined" rel="noreferrer">
+					{{ link.label }}
+				</a>
+				<button type="button" class="theme-toggle" :aria-label="theme === 'light' ? 'Enable dark mode' : 'Enable light mode'" @click="toggleTheme">
+					<component :is="iconNode(theme === 'light' ? 'moon' : 'sun')" />
+				</button>
+			</nav>
+		</header>
 
-				<div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-					<button
-						v-for="position in positions"
-						:key="position"
-						type="button"
-						class="rounded-2xl border px-4 py-3 text-left text-sm transition duration-200"
-						:class="
-							activePosition === position
-								? 'border-cyan-300 bg-cyan-300 text-neutral-950 shadow-[0_10px_30px_rgba(34,211,238,0.28)]'
-								: 'border-white/10 bg-white/5 text-white/75 hover:border-white/20 hover:bg-white/10'
-						"
-						@click="previewPosition(position)"
-					>
-						<div class="font-medium">{{ position }}</div>
-						<div class="mt-1 text-xs opacity-70">Preview future toasts here</div>
+		<main>
+			<section class="hero">
+				<h1 data-hero>Sileo-Vue</h1>
+				<p class="hero-copy" data-hero>
+					An opinionated toast component for Vue. SVG morphing, spring physics, and a
+					minimal API — beautiful by default.
+				</p>
+
+				<div class="install-pill" data-hero>
+					<span class="install-prefix">$</span>
+					<code>{{ installCommand }}</code>
+					<button type="button" class="icon-button copy-pill" aria-label="Copy install command" @click="copyInstall">
+						<component :is="iconNode('copy')" />
 					</button>
 				</div>
-			</header>
 
-			<main class="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-				<section class="rounded-[2rem] border border-white/10 bg-white/5 p-6 backdrop-blur-xl sm:p-8">
-					<div class="mb-6 flex items-center justify-between gap-4">
-						<div>
-							<p class="text-sm font-medium text-white/60">Live demos</p>
-							<h2 class="text-2xl font-semibold text-white">Toast variants</h2>
-						</div>
+				<div class="hero-actions" data-hero>
+					<a class="link-pill" href="https://github.com/sayyam267/sileo-vue#readme" target="_blank" rel="noreferrer">
+						Documentation
+					</a>
+				</div>
+			</section>
+
+			<section id="playground" class="playground">
+				<div class="playground-heading">
+					<p>Try it</p>
+				</div>
+
+				<div class="type-row">
+					<button
+						v-for="option in typeOptions"
+						:key="option.value"
+						type="button"
+						class="type-pill"
+						@click="triggerToast(option.value)"
+					>
+						<component :is="iconNode(typeMeta[option.value].icon)" />
+						{{ option.label }}
+					</button>
+				</div>
+
+				<div class="controls">
+					<p class="control-title">Position</p>
+					<div class="position-row">
 						<button
+							v-for="item in positionButtons"
+							:key="item.value"
 							type="button"
-							class="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/70 transition hover:bg-white/10"
-							@click="sileo.clear()"
+							class="position-pill"
+							:class="{ active: position === item.value }"
+							@click="position = item.value"
 						>
-							Clear all
+							{{ item.label }}
 						</button>
 					</div>
 
-					<div class="grid gap-4 md:grid-cols-2">
-						<article
-							v-for="card in demoCards"
-							:key="card.id"
-							class="group rounded-[1.6rem] border border-white/10 bg-neutral-950/50 p-5 transition duration-200 hover:border-cyan-300/30 hover:bg-neutral-950/70"
-						>
-							<div class="flex items-start justify-between gap-4">
-								<div>
-									<h3 class="text-xl font-semibold text-white">{{ card.title }}</h3>
-									<p class="mt-2 text-sm leading-6 text-white/60">
-										{{ card.description }}
-									</p>
-								</div>
-								<div class="h-3 w-3 rounded-full bg-cyan-300/80 shadow-[0_0_20px_rgba(103,232,249,0.6)]"></div>
-							</div>
+					<pre class="code-block"><code>{{ setupSnippet }}</code></pre>
+				</div>
+			</section>
+		</main>
 
-							<button
-								type="button"
-								class="mt-6 inline-flex items-center rounded-full bg-white px-4 py-2 text-sm font-medium text-neutral-950 transition hover:translate-y-[-1px] hover:bg-cyan-200"
-								@click="card.action()"
-							>
-								Trigger {{ card.title }}
-							</button>
-						</article>
-					</div>
-				</section>
-
-				<section class="flex flex-col gap-6">
-					<div class="rounded-[2rem] border border-white/10 bg-white/5 p-6 backdrop-blur-xl sm:p-8">
-						<p class="text-sm font-medium text-white/60">Install</p>
-						<h2 class="mt-2 text-2xl font-semibold text-white">Start using it</h2>
-						<p class="mt-3 text-sm leading-6 text-white/65">
-							Copy the install command, drop in the toaster, and use the same runtime API from this page.
-						</p>
-
-						<div class="mt-6 rounded-[1.5rem] border border-white/10 bg-neutral-950/80 p-4">
-							<div class="flex items-center justify-between gap-3">
-								<code class="overflow-x-auto text-sm text-cyan-200">{{ installCommand }}</code>
-								<button
-									type="button"
-									class="shrink-0 rounded-full bg-cyan-300 px-4 py-2 text-sm font-medium text-neutral-950 transition hover:bg-cyan-200"
-									@click="copyInstall"
-								>
-									Copy
-								</button>
-							</div>
-						</div>
-					</div>
-
-					<div class="rounded-[2rem] border border-white/10 bg-gradient-to-br from-white/10 to-white/5 p-6 backdrop-blur-xl sm:p-8">
-						<p class="text-sm font-medium text-white/60">Usage</p>
-						<h2 class="mt-2 text-2xl font-semibold text-white">Minimal setup</h2>
-						<pre class="mt-5 overflow-x-auto rounded-[1.5rem] border border-white/10 bg-neutral-950/85 p-4 text-sm leading-6 text-white/80"><code>import { Toaster, sileo } from "sileo-vue3";
-import "sileo-vue3/styles.css";
-
-// in your root component
-&lt;Toaster position="top-right" /&gt;
-
-sileo.success({
-  title: "Saved",
-  description: "Your changes have been stored."
-});</code></pre>
-					</div>
-				</section>
-			</main>
-
-			<footer class="mt-10 border-t border-white/10 pt-6 text-sm text-white/45">
-				Made by Sayyam Ali
-			</footer>
-		</div>
+		<footer class="site-footer">
+			<span>Made with Vue 3</span>
+			<a href="https://github.com/sayyam267/sileo-vue" target="_blank" rel="noreferrer">GitHub</a>
+		</footer>
 	</div>
 </template>
